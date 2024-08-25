@@ -39,10 +39,11 @@ class GaussianMixtureModel(object):
         for j in range(self.number_components):
             r.append((weights[j] * self.pi_[j]) / (np.sum([weights[i] * self.pi_[i] for i in range(self.number_components)],axis=0))) 
             self.mean_[j] = np.sum(r[j] * self.data)/(np.sum(r[j]))
-            self.variance_[j] = np.sum(r[j] * np.square(self.data - self.mean_[j])) / np.sum(r[j])
+            # note stupid handling of small variance
+            self.variance_[j] = np.max([np.sum(r[j] * np.square(self.data - self.mean_[j])) / np.sum(r[j]),1e-20])
             self.pi_[j] = np.mean(r[j])
      
-    def train(self, number_steps=150, plot_intermediate_step_flag=True):
+    def train(self, number_steps=50, plot_intermediate_step_flag=True):
         self.mean_history, self.variance_history = [], []
         for step in range(number_steps):
             weights = self.expectation()
@@ -54,7 +55,8 @@ class GaussianMixtureModel(object):
             # some intelligent test for
             # convergence
             
-            # some
+            # some inteligent handling of very small 
+            # variance 
 
     """ draw from distribution """
     def evaluate(self, component, n_samples):
@@ -63,7 +65,7 @@ class GaussianMixtureModel(object):
                              size = n_samples)        
 
     """ Viz or something """
-    def instpect(self):
+    def inspect(self):
         for i in range(self.number_components):
             print("mean: ", self.mean_[i], " variance: ", self.variance_[i])
 
@@ -95,7 +97,7 @@ if __name__ == "__main__":
     print('----')
     model = GaussianMixtureModel(X,3)
     model.train()
-    model.instpect()
+    model.inspect()
    
     mean, variance = model.get_history()
     
