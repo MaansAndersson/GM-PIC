@@ -72,11 +72,22 @@ class GaussianMixtureModel():
             # some inteligent handling of very small
             # variance
 
-    def evaluate(self, component, n_samples):
+    def evaluate(self, component, n_samples : int):
         """ draw from distribution """
         return np.random.normal(loc = self.mean_[component],
                              scale = np.sqrt(self.variance_[component]),
                              size = n_samples)
+    def evaluate_equal(self, n_samples_tot : int):
+        """ draw eq amount of samples from all distirbutions 
+        make this nicer lol """
+        
+        predicted_data = np.ndarray((0,))
+        component_size = np.ndarray(shape=(self.number_components,),dtype=np.int32)
+        component_size[:] = int(np.floor_divide(n_samples_tot,self.number_components))
+        component_size[0] += int(n_samples_tot%self.number_components)
+        for component in range(self.number_components):
+            predicted_data = np.append(predicted_data,self.evaluate(component,int(component_size[component])))
+        return predicted_data[:]
 
     def inspect(self):
         """ Viz or something """

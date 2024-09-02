@@ -42,7 +42,7 @@ def getAcc( pos, Nx, boxsize, n0, Gmtx, Lmtx ):
     jp1        = np.mod(jp1, Nx)   # periodic BC
     n  = np.bincount(j[:,0],   weights=weight_j[:,0],   minlength=Nx);
     n += np.bincount(jp1[:,0], weights=weight_jp1[:,0], minlength=Nx);
-    n *= n0 * boxsize / N / dx 
+    n *= n0 * boxsize / N / dx
     
     # Solve Poisson's Equation: laplacian(phi) = n-n0
     phi_grid = spsolve(Lmtx, n-n0, permc_spec="MMD_AT_PLUS_A")
@@ -62,7 +62,7 @@ def main():
     """ Plasma PIC simulation """
     
     # Simulation parameters
-    N         = 40000   # Number of particles
+    N         = 80000   # Number of particles
     Nx        = 400     # Number of mesh cells
     t         = 0       # current time of the simulation
     tEnd      = 50      # time at which simulation ends
@@ -75,7 +75,7 @@ def main():
     plotRealTime = True # switch on for plotting as the simulation goes along
     
     # Generate Initial Conditions
-    np.random.seed(42)            # set the random number generator seed
+    np.random.seed(5)            # set the random number generator seed
     # construct 2 opposite-moving Guassian beams
     pos  = np.random.rand(N,1) * boxsize
     vel  = vth * np.random.randn(N,1) + vb
@@ -83,7 +83,7 @@ def main():
     vel[Nh:] *= -1
     # add perturbation
     vel *= (1 + A*np.sin(2*np.pi*pos/boxsize))
-    
+
     # Construct matrix G to computer Gradient  (1st derivative)
     dx = boxsize/Nx
     e = np.ones(Nx)
@@ -118,6 +118,7 @@ def main():
     # Simulation Main Loop
     for i in range(Nt):
         # (1/2) kick
+        
         vel += acc * dt/2.0
         
         # drift (and apply periodic boundary conditions)
@@ -127,12 +128,14 @@ def main():
         # update accelerations
         acc = getAcc( pos, Nx, boxsize, n0, Gmtx, Lmtx )
         
+
         # (1/2) kick
         vel += acc * dt/2.0
         
         # update time
         t += dt
         
+        #print(np.sum(np.square(vel)))
         # plot in real time - color 1/2 particles blue, other half red
         if plotRealTime or (i == Nt-1):
             plt.cla()
@@ -141,23 +144,40 @@ def main():
             plt.axis([0,boxsize,-6,6])
             plt.pause(0.001)
 
+        if (i == round(0.1*Nt)):
+            total_elemets = 1
+            for element in range(0,total_elemets):
+                print('Training and evaluating elemnet: ',element)
+                local_idx = np.where(np.any(pos[:] < (element+1)*boxsize/total_elemets) and (pos[:] > (element)*boxsize/total_elemets))
+                print('From: ',element*boxsize/total_elemets)
+                print('To: ',(element+1)*boxsize/total_elemets)
 
-        for element in range(1,Nx):
-            local_idx = (pos[0:Nh] < element*dx)
-            number_components = 6
-            # For each element train a model
-            model = GM_PIC.GaussianMixtureModel(number_components,vel[local_idx])
-            model.train(numer_iterations = 50)
-            vel_p = np.ndarray(shape(number_components,len(local_idx)/number_components))
-            for i in range(number_components):
-                vel_p[i,:] = model.evaluate(compnent = i, n_samples = len(local_idx)/number_components)
-        vel_p = vel_p[:]
+                number_components = 5
+                model = GM_PIC.GaussianMixtureModel(number_components = number_components,
+                                                    data  = vel[local_idx].flatten())
+                #model.initial_guess()
+                #model.restart?
+                print('---')
+                model.inspect()
+                model.train(number_steps = 300)
+                model.inspect()
+                print('---')
+               
+                C = model.evaluate_equal(len(vel[local_idx]))
 
 
-#            # Reconstruct the velocities point-wise
-#            vel_p = model.predict(number_particles = 100)
+                plt.figure(2+element)
+                counts, bins = np.histogram(vel[local_idx].flatten(), bins = 500)
+                plt.hist(bins[:-1], bins, weights=counts, alpha = 1)
+                counts, bins = np.histogram(C[:].flatten(), bins = 500)
+                plt.hist(bins[:-1], bins, weights=counts, alpha = 0.5)
+                ##plt.stairs(counts, bins)
+                ##plt.show()
+                vel[local_idx] = np.flip(C[:])
+   #             plt.pause(1)
 
-    # Save figure
+    plt.figure(2+element)
+                      # Save figure
     plt.xlabel('x')
     plt.ylabel('v')
     plt.savefig('pic.png',dpi=240)
