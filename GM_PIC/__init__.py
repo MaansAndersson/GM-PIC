@@ -1,4 +1,3 @@
 """PIC-GM"""
-
-from .version import __version__
+__all__ = ['mixture']
 from .mixture.initial_gmm import GaussianMixtureModel
