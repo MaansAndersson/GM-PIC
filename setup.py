@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-from src import version
+from GM_PIC import version
 
 setup(
     name="GM-PIC",
