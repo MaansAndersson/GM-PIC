@@ -12,4 +12,5 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     python_requires=">=3.8",
+    install_requires=['numpy < 2.0', 'scipy < 2.0', 'seaborn < 1.0', 'scikit-learn < 2.0', 'pandas < 3.0'],
 )
