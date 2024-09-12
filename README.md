@@ -1,7 +1,7 @@
 ## GM-PIC
 
 # Install
-```python3 -m pip Install .```
+```python3 -m pip install . ```
 
 # Example
 Simulate the 1D Two-Stream Instability
