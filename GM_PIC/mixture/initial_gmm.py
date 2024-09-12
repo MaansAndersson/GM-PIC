@@ -37,7 +37,7 @@ class GaussianMixtureModel():
         self.mean_history = []
         self.covariance_history = []
 
-    def random_init(self) -> tuple[np.array, np.array, np.array]:
+    def random_init(self) -> tuple(np.array, np.array, np.array):
         """ Should have different inits """
 
         pi_ = np.ones((self.nr_of_components)) / self.nr_of_components

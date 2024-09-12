@@ -1,4 +1,9 @@
 ## GM-PIC
+
+# Install
+```python3 -m pip Install .```
+
+# Example
 Simulate the 1D Two-Stream Instability
 
 # Gaussian Mixture
