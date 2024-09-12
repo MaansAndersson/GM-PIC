@@ -62,11 +62,11 @@ def main():
     """ Plasma PIC simulation """
     
     # Simulation parameters
-    N         = 80000   # Number of particles
+    N         = 40000   # Number of particles
     Nx        = 400     # Number of mesh cells
     t         = 0       # current time of the simulation
     tEnd      = 50      # time at which simulation ends
-    dt        = 0.1       # timestep
+    dt        = 1       # timestep
     boxsize   = 50      # periodic domain [0,boxsize]
     n0        = 1       # electron number density
     vb        = 3       # beam velocity
@@ -114,7 +114,9 @@ def main():
     
     # prep figure
     fig = plt.figure(figsize=(5,4), dpi=80)
-    
+
+    # store init vel
+    vel0 = vel.copy()
     # Simulation Main Loop
     for i in range(Nt):
         # (1/2) kick
@@ -144,39 +146,71 @@ def main():
             plt.axis([0,boxsize,-6,6])
             plt.pause(0.001)
 
-        if (i == round(0.1*Nt)):
-            total_elemets = 1
+        if (i == round(0.3*Nt)):
+            pos_t = 0.*pos.copy()
+            vel_t = 0.*vel.copy()
+            total_elemets = 4
             for element in range(0,total_elemets):
                 print('Training and evaluating elemnet: ',element)
-                local_idx = np.where(np.any(pos[:] < (element+1)*boxsize/total_elemets) and (pos[:] > (element)*boxsize/total_elemets))
+                local_idx_ic1 = ((pos[:] < (element+1)*boxsize/total_elemets) \
+                        * (pos[:] > (element)*boxsize/total_elemets) \
+                        * (vel0[:] > 0)).nonzero()
+                
+                local_idx_ic2 = ((pos[:] < (element+1)*boxsize/total_elemets) \
+                        * (pos[:] > (element)*boxsize/total_elemets) \
+                        * (vel0[:] < 0)).nonzero()
+
                 print('From: ',element*boxsize/total_elemets)
                 print('To: ',(element+1)*boxsize/total_elemets)
 
-                number_components = 5
-                model = GM_PIC.GaussianMixtureModel(number_components = number_components,
-                                                    data  = vel[local_idx].flatten())
+                number_components = 10
+                data_ic1 = np.array([pos[local_idx_ic1].copy(),vel[local_idx_ic1].copy()]).T
+                data_ic2 = np.array([pos[local_idx_ic2].copy(),vel[local_idx_ic2].copy()]).T
+                
+                model_ic1 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
+                                                    data  = data_ic1.copy())
+                model_ic2 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
+                                                    data  = data_ic2.copy())
+
                 #model.initial_guess()
                 #model.restart?
                 print('---')
-                model.inspect()
-                model.train(number_steps = 300)
-                model.inspect()
+                #model_ic1.inspect()
+                model_ic1.train(nr_of_steps = 400)
+                #model_ic1.inspect()
                 print('---')
-               
-                C = model.evaluate_equal(len(vel[local_idx]))
+                #model_ic2.inspect()
+                model_ic2.train(nr_of_steps = 400)
+                #model_ic2.inspect()
 
+                P_ic1, V_ic1 = model_ic1.evaluate_equal(len(vel[local_idx_ic1])).T
+                mean_P_ic1, mean_V_ic1 = model_ic1.get_mean().T
+                
+                P_ic2, V_ic2 = model_ic2.evaluate_equal(len(vel[local_idx_ic2])).T
+                mean_P_ic2, mean_V_ic2 = model_ic2.get_mean().T
 
-                plt.figure(2+element)
-                counts, bins = np.histogram(vel[local_idx].flatten(), bins = 500)
-                plt.hist(bins[:-1], bins, weights=counts, alpha = 1)
-                counts, bins = np.histogram(C[:].flatten(), bins = 500)
-                plt.hist(bins[:-1], bins, weights=counts, alpha = 0.5)
-                ##plt.stairs(counts, bins)
-                ##plt.show()
-                vel[local_idx] = np.flip(C[:])
-   #             plt.pause(1)
+                pos_t[local_idx_ic1] = P_ic1[:]
+                vel_t[local_idx_ic1] = V_ic1[:]
+                pos_t[local_idx_ic2] = P_ic2[:]
+                vel_t[local_idx_ic2] = V_ic2[:]
+                #pos_t = np.mod(pos_t, boxsize)
+                fig = plt.figure(2) #figsize=(5,4), dpi=80)
 
-    plt.figure(2+element)
+                plt.scatter(x=P_ic1, y=V_ic1, s=0.05, color='b')#, linewidths=1)
+                plt.scatter(x=P_ic2, y=V_ic2, s=0.05, color='r')#, linewidths=1)
+                plt.scatter(x=mean_P_ic1, y=mean_V_ic1, s=4,color='orange')#, linewidths=1)
+                plt.scatter(x=mean_P_ic2, y=mean_V_ic2, s=4,color='k')#, linewidths=1)
+                #plt.figure(3)
+                #plt.scatter(x=ve, y=V_ic1, s=0.05, color='k')#, linewidths=1)
+                #plt.scatter(x=P_ic2, y=V_ic2, s=0.05, color='sienna')#, linewidths=1)
+
+                #plt.show()
+                plt.pause(1)
+            pos[:] = pos_t[:]
+            vel[:] = vel_t[:]
+            input()
+
+        #plt.figure(2+element)
                       # Save figure
     plt.xlabel('x')
     plt.ylabel('v')
