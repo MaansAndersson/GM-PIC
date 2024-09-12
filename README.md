@@ -1,11 +1,16 @@
 # GM-PIC
 
 ## Install
-As this is an developing library we assume a "development mode"
+As this is an developing library we assume a "development mode" and reccomend to use the virtual enviorment 
+
 ```python3 -m venv Plasma-PEPSC```
+
 activate the virtual env
+
 ```source .Plasma-PEPSC/bin/activate ```
+
 install library with pip
+
 ```python3 -m pip install -e . ```
 
 ## Example
