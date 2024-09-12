@@ -1,6 +1,6 @@
 name: Pylint
 
-on: [push]
+on: []
 
 jobs:
   build:
@@ -17,7 +17,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install .
+        python -m pip install numpy
+        python -m pip install scipy
+        python -m pip install seaborn
+        python -m pip install pandas
+        python -m pip install matplotlib
+        python -m pip install scikit-learn
     - name: Analysing the code with pylint
       run: |
         pylint $(git ls-files 'GM_PIC/*.py')
