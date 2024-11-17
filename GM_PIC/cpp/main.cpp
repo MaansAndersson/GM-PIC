@@ -1,9 +1,9 @@
-#include <openPMD/openPMD.hpp>
+//#include <openPMD/openPMD.hpp>
 
-#include <mpi.h>
+//#include <mpi.h>
 
 #include <cstddef>
-//#include <iostream>
+#include <iostream>
 #include <memory>
 
 // Added for MGD
@@ -13,27 +13,28 @@
 #include <cmath>
 //#include <map>
 
-//using std::cout;
-using namespace openPMD;
+//using namespace openPMD;
 
 
 // Simple SPD Matrix Class
 // Change to std::array (should be fine for now)
 // To be wrapped over Eigen etc
-template<typename T>
+
+//template<typename T, std::size_t m>
+template<typename T> // static std::size_t n>
 class MTXSPD {
 
 public:
   MTXSPD(){};
+  //MTXSPD(std::array<std::array<T,n>,n> A, int m){this->m = m; this->A = A; this->chol(); this->invert_L();}; // Some check that it is S in SPD;
   MTXSPD(std::vector<std::vector<T>> A, int m){this->m = m; this->A = A; this->chol(); this->invert_L();}; // Some check that it is S in SPD;
   MTXSPD<T> apply_inv(MTXSPD<T> matrix);
-  std::vector<T> apply_inv(std::vector<T> vec){return this->apply_Linvtrans(this->apply_Linv(vec));};
 
-  std::vector<T> apply_Linv(std::vector<T> vec);
-  std::vector<T> apply_Linvtrans(std::vector<T> vec);
-
-
-void print_A(int mat){ for (int i = 0; i < m; i++) {
+  void apply_inv(std::vector<T> &vec){this->apply_Linvtrans(vec); this->apply_Linv(vec);};
+  void apply_Linv(std::vector<T> &vec);
+  void apply_Linvtrans(std::vector<T> &vec);
+  void print_A(int mat){
+                  for (int i = 0; i < m; i++) {
                     for (int j = 0; j < m; j++) {
                         if (mat == 1) {
                         std::cout << this->A[i][j] << " ";
@@ -59,7 +60,7 @@ private:
 
 // We apply L on a vec in palce
 template<class T>
-std::vector<T> MTXSPD<T>::apply_Linv(std::vector<T> vec){
+void MTXSPD<T>::apply_Linv(std::vector<T> &vec){
 
   for (int i = m-1;  i > -1; i--) {
     T res = 0.;
@@ -68,12 +69,11 @@ std::vector<T> MTXSPD<T>::apply_Linv(std::vector<T> vec){
     }
     vec[i] = res;
   }
-return vec;
 };
 
 // We apply L* on a vec in place
 template<class T>
-std::vector<T> MTXSPD<T>::apply_Linvtrans(std::vector<T> vec){
+void MTXSPD<T>::apply_Linvtrans(std::vector<T> &vec){
   for (int i = 0; i < m; i++) {
     T res = 0.;
     for (int j = i;  j < m; j++) {
@@ -81,7 +81,6 @@ std::vector<T> MTXSPD<T>::apply_Linvtrans(std::vector<T> vec){
     }
     vec[i] = res;
   }
-return vec;
 
 };
 
@@ -113,12 +112,12 @@ template<class T>
 void MTXSPD<T>::invert_L(){
     std::vector<std::vector<T>> Linv(this->m,std::vector<T>(this->m));
     for (int b = 0; b < m; b++) {
-		for (int i = 0; i < m; i++) {
+      for (int i = 0; i < m; i++) {
         float sum = 0;
-				for (int j = 0; j < i; j++) {
+        for (int j = 0; j < i; j++) {
             sum += L[i][j] * Linv[j][b];
-				}
-				Linv[i][b] = ((T)(i == b) - sum) / L[i][i];
+        }
+        Linv[i][b] = ((T)(i == b) - sum) / L[i][i];
    }
 }
 this->Linv = Linv;
@@ -131,6 +130,8 @@ this->Linv = Linv;
 // Three spatial values
 // Three velocity values
 // Implement such that n samples can be used
+//
+//template<typename T, std::size_t n_features>
 template<typename T>
 class MultivariateGaussian {
 
@@ -175,6 +176,7 @@ private:
 //
 //
 //
+//template<typename T, std::size_t n_components>
 class GaussianMixtureModel {
 
   public:
@@ -186,7 +188,11 @@ class GaussianMixtureModel {
     int get_n_comp(){return this->n_components;};
 
     // Standard constructor
-    GaussianMixtureModel() {this->n_components = 10;this->n_features = 10;this->n_data = 10;std::cout << "constructor" << std::endl;};
+    GaussianMixtureModel() {this->n_components = 10;
+                            this->n_features = 10;
+                            this->n_data = 10;
+                            std::cout << "constructor" << std::endl;};
+
     GaussianMixtureModel(size_t n_data) {this->n_data = n_data;std::cout << "n_data: " << n_data << std::endl;}
 
   private:
@@ -206,7 +212,7 @@ class GaussianMixtureModel {
 /*
 Expectation part of the EM algorithm
 */
-std::vector<std::vector<double>> GaussianMixtureModel::expectation(std::vector<std::vector<double>> weights) {
+  std::vector<std::vector<double>> GaussianMixtureModel::expectation(std::vector<std::vector<double>> weights) {
   double numerator;
 
   // Should covariance be a list ov matrices or
@@ -261,8 +267,6 @@ int main(int argc, char *argv[])
   std::cout << std::scientific;
   GaussianMixtureModel GMM = GaussianMixtureModel(10);
   GaussianMixtureModel GMM2 = GaussianMixtureModel();
-  std::cout << "hihi " << GMM2.get_n_comp() << std::endl;
-  std::cout << "hihi" << std::endl;
 
   MultivariateGaussian<double> MG = MultivariateGaussian<double>();
   std::vector<std::vector<double>> Mat = {{0, 2, 3}, {4, 5, 6}};
@@ -273,21 +277,21 @@ int main(int argc, char *argv[])
   std::vector<std::vector<double>> A = {{4, 12, -16}, {12, 37, -43}, {-16, -43, 98}};
   MTXSPD<double> TestMTX(A, 3);
 
-	std::cout << "-- A --" << std::endl;
+  std::cout << "-- A --" << std::endl;
   TestMTX.print_A(1);
-	std::cout << "-- L --" << std::endl;
+  std::cout << "-- L --" << std::endl;
   TestMTX.print_A(2);
-	std::cout << "-- Linv --" << std::endl;
-	TestMTX.print_A(3);
+  std::cout << "-- Linv --" << std::endl;
+  TestMTX.print_A(3);
   std::vector<double> x = {1, 1, 1};
-  x = TestMTX.apply_Linv(x);
+  TestMTX.apply_Linv(x);
   std::cout << "____" << std::endl;
   std::cout << x[0] << " " << x[1] << " " << x[2] << std::endl;
   x = {1, 1, 1};
-  x = TestMTX.apply_Linvtrans(x);
+  TestMTX.apply_Linvtrans(x);
   std::cout << x[0] << " " << x[1] << " " << x[2] << std::endl;
   x = {1, 1, 1};
-  x = TestMTX.apply_inv(x);
+  TestMTX.apply_inv(x);
   std::cout << x[0] << " " << x[1] << " " << x[2] << std::endl;
 
 
