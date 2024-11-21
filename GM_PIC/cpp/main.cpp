@@ -54,7 +54,8 @@ public:
     this->apply_Linvtrans(vec, mean);
   };
   void apply_Linv(std::array<std::vector<T>, m> &vec);
-  void apply_Linvtrans(std::array<std::vector<T>, m> &vec, const std::vector<T> &mean);
+  void apply_Linvtrans(std::array<std::vector<T>, m> &vec,
+                       const std::vector<T> &mean);
 
   void print_A(int mat) {
     for (int i = 0; i < m; i++) {
@@ -79,7 +80,6 @@ private:
   void chol();
 };
 
-// should probably make mean an array<T,m>
 template <class T, int m>
 void MTXSPD<T, m>::apply_Linv(std::array<std::vector<T>, m> &vec) {
   for (int k = 0; k < vec[0].size(); k++) {
@@ -93,9 +93,10 @@ void MTXSPD<T, m>::apply_Linv(std::array<std::vector<T>, m> &vec) {
   }
 };
 
-// We apply L* on a vec in place
+// We apply L* on a vec in place and add mean
 template <class T, int m>
-void MTXSPD<T, m>::apply_Linvtrans(std::array<std::vector<T>, m> &vec, const std::vector<T> &mean) {
+void MTXSPD<T, m>::apply_Linvtrans(std::array<std::vector<T>, m> &vec,
+                                   const std::vector<T> &mean) {
   for (int k = 0; k < vec[0].size(); k++) {
     for (int i = 0; i < m; i++) {
       T res = 0.;
@@ -168,12 +169,6 @@ template <class T, int m> void MTXSPD<T, m>::invert_L() {
 };
 
 // Probability distribution of Multivariate Gaussian
-// Up to six independent variables
-// Three spatial values
-// Three velocity values
-// Implement such that n samples can be used
-//
-// template<typename T, std::size_t n_features>
 template <typename T, std::size_t n_features> class MultivariateGaussian {
 public:
   void evaluate(int nr_samples) {
@@ -189,7 +184,7 @@ public:
     }
     covariance.apply_Linv(X);
     covariance.apply_Linvtrans(X, mean);
-		std::cout <<"[";
+     std::cout <<"[";
      for (int i = 0; i < n_features; i++) {
        for (int j = 0; j < nr_samples; j++) {
 
@@ -222,7 +217,7 @@ private:
 
 // Gaussian Mixture class
 // EM algorithm
-template <typename T, std::size_t n_features, std::size_t n_components>
+template <typename T, std::size_t n_features>
 class GaussianMixtureModel {
 
 public:
@@ -231,17 +226,19 @@ public:
   void evaluate();
   void warmstart_init();
   void random_init();
-  void get_n_comp() { return this->n_components; };
+  int get_n_comp() { return this->n_components; };
 
   // Standard constructor
   GaussianMixtureModel() {
-    this->n_components = 10;
+		this->n_data = 10;
+		this->n_components = 10;
     std::cout << "constructor" << std::endl;
   };
 
-  GaussianMixtureModel(size_t n_data) {
+  GaussianMixtureModel(size_t n_data, size_t n_components) {
     this->n_data = n_data;
-    std::cout << "n_data: " << n_data << std::endl;
+		this->n_components = n_components;
+    std::cout << "n_data: " << n_data << " n_features: " << n_features << " n_components: " << n_components << std::endl;
   }
 
 private:
@@ -253,19 +250,25 @@ private:
   std::vector<MTXSPD<T, n_features>> covariance;
   std::vector<T> pi;
   std::mt19937 gen;
+	size_t n_components;
   size_t n_data;
 };
 
 /*
 Expectation part of the EM algorithm
 */
-template <typename T, std::size_t n_features, std::size_t n_components>
-void GaussianMixtureModel<T, n_features, n_components>::expectation(
+template <typename T, std::size_t n_features>
+void GaussianMixtureModel<T, n_features>::expectation(
     std::vector<std::vector<T>> &weights) {
   T numerator;
 
-  MultivariateGaussian<T, n_features> {data};
-  // (this->mean,
+	
+	MTXSPD<T, n_features> cov {{1, 0},{0, 1}};
+	std::vector<T> {0.,0.};
+	std::vector<MultivariateGaussian<T, n_features>> MGlist;
+	MultivariateGaussian<T, n_features> MG {gen, mean, cov};
+	MGlist.push_back(MG);
+	// (this->mean,
   // this->covariance); for (int i = 0; i < this->n_components; i++) {
   //  MvGaDs.evaluate_and_get_samples(this->n_data);
 
@@ -281,11 +284,11 @@ void GaussianMixtureModel<T, n_features, n_components>::expectation(
   }
 }
 
-template <typename T, std::size_t n_features, std::size_t n_components>
-void GaussianMixtureModel<T, n_features, n_components>::maximization() {}
+template <typename T, std::size_t n_features>
+void GaussianMixtureModel<T, n_features>::maximization() {}
 
-template <typename T, std::size_t n_features, std::size_t n_components>
-void GaussianMixtureModel<T, n_features, n_components>::train(int n_train) {
+template <typename T, std::size_t n_features>
+void GaussianMixtureModel<T, n_features>::train(int n_train) {
   for (int i = 0; i < n_train; i++) {
     std::vector<std::vector<double>> weights;
     this->expectation(weights);
@@ -293,14 +296,14 @@ void GaussianMixtureModel<T, n_features, n_components>::train(int n_train) {
   };
 }
 
-template <typename T, std::size_t n_features, std::size_t n_components>
-void GaussianMixtureModel<T, n_features, n_components>::evaluate() {}
+template <typename T, std::size_t n_features>
+void GaussianMixtureModel<T, n_features>::evaluate() {}
 
-template <typename T, std::size_t n_features, std::size_t n_components>
-void GaussianMixtureModel<T, n_features, n_components>::warmstart_init() {}
+template <typename T, std::size_t n_features>
+void GaussianMixtureModel<T, n_features>::warmstart_init() {}
 
-template <typename T, std::size_t n_features, std::size_t n_components>
-void GaussianMixtureModel<T, n_features, n_components>::random_init() {}
+template <typename T, std::size_t n_features>
+void GaussianMixtureModel<T, n_features>::random_init() {}
 
 class AdaptiveGaussianMixtureModel {};
 class DistributedGaussianMixtureModel {};
@@ -314,7 +317,8 @@ int main(int argc, char *argv[]) {
   std::mt19937 gen{rd()};
 
   std::cout << std::scientific;
-  GaussianMixtureModel<double, 10, 10> GMM{10};
+
+  GaussianMixtureModel<double, 2> GMM{1000, 3};
   // GaussianMixtureModel GMM2 = GaussianMixtureModel();
 
   std::vector<std::vector<double>> A0 = {
@@ -337,18 +341,15 @@ int main(int argc, char *argv[]) {
   // TestMTX.apply_inv(x);
   // std::cout << x[0] << " " << x[1] << " " << x[2] << std::endl;
   // std::cout << "____" << std::endl;
-	
-	std::vector<std::vector<double>> A = {
-      {2, 1},
-			{1, 2}};
 
-  MTXSPD<double, 2> cov{A};
-	cov.print_A(2);
-  std::vector<double> mean{5., 5.};
+  std::vector<std::vector<float>> A = {{2, 1}, {1, 2}};
+  MTXSPD<float, 2> cov{A};
+  // cov.print_A(2);
+  std::vector<float> mean{5., 5.};
 
   auto t1 = std::chrono::high_resolution_clock::now();
-  MultivariateGaussian<double, 2> MG{gen, mean, cov};
-  int a = 1e3;
+  MultivariateGaussian<float, 2> MG{gen, mean, cov};
+  int a = 1e1;
   for (int i = 0; i < 1; i++) {
     MG.evaluate(a);
   }
