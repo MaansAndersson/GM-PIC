@@ -184,9 +184,9 @@ public:
     }
     covariance.apply_Linv(X);
     covariance.apply_Linvtrans(X, mean);
-     std::cout <<"[";
-     for (int i = 0; i < n_features; i++) {
-       for (int j = 0; j < nr_samples; j++) {
+    std::cout << "[";
+    for (int i = 0; i < n_features; i++) {
+      for (int j = 0; j < nr_samples; j++) {
 
         std::cout << X[i][j] << ", ";
       }
@@ -217,8 +217,7 @@ private:
 
 // Gaussian Mixture class
 // EM algorithm
-template <typename T, std::size_t n_features>
-class GaussianMixtureModel {
+template <typename T, std::size_t n_features> class GaussianMixtureModel {
 
 public:
   // Public functions
@@ -230,15 +229,22 @@ public:
 
   // Standard constructor
   GaussianMixtureModel() {
-		this->n_data = 10;
-		this->n_components = 10;
+    this->n_data = 10;
+    this->n_components = 10;
     std::cout << "constructor" << std::endl;
+
+    MTXSPD<T, n_features> cov{{1, 0}, {0, 1}};
+    std::vector<T> mean{0., 0.};
+    std::vector<MultivariateGaussian<T, n_features>> MGlist;
+    MultivariateGaussian<T, n_features> MG{gen, mean, cov};
+    MGlist.push_back(MG);
   };
 
   GaussianMixtureModel(size_t n_data, size_t n_components) {
     this->n_data = n_data;
-		this->n_components = n_components;
-    std::cout << "n_data: " << n_data << " n_features: " << n_features << " n_components: " << n_components << std::endl;
+    this->n_components = n_components;
+    std::cout << "n_data: " << n_data << " n_features: " << n_features
+              << " n_components: " << n_components << std::endl;
   }
 
 private:
@@ -250,7 +256,7 @@ private:
   std::vector<MTXSPD<T, n_features>> covariance;
   std::vector<T> pi;
   std::mt19937 gen;
-	size_t n_components;
+  size_t n_components;
   size_t n_data;
 };
 
@@ -262,13 +268,7 @@ void GaussianMixtureModel<T, n_features>::expectation(
     std::vector<std::vector<T>> &weights) {
   T numerator;
 
-	
-	MTXSPD<T, n_features> cov {{1, 0},{0, 1}};
-	std::vector<T> {0.,0.};
-	std::vector<MultivariateGaussian<T, n_features>> MGlist;
-	MultivariateGaussian<T, n_features> MG {gen, mean, cov};
-	MGlist.push_back(MG);
-	// (this->mean,
+  // (this->mean,
   // this->covariance); for (int i = 0; i < this->n_components; i++) {
   //  MvGaDs.evaluate_and_get_samples(this->n_data);
 
