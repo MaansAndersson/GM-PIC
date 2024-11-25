@@ -60,6 +60,8 @@ def getAcc( pos, Nx, boxsize, n0, Gmtx, Lmtx ):
 
 def main():
     """ Plasma PIC simulation """
+
+    compress = int(input('compress? 1/0: '));
     
     # Simulation parameters
     N         = 40000   # Number of particles
@@ -145,11 +147,72 @@ def main():
             plt.scatter(pos[Nh:], vel[Nh:], s=.4,color='red',  alpha=0.5)
             plt.axis([0,boxsize,-6,6])
             plt.pause(0.001)
-
-        if (i == round(0.3*Nt)):
+        
+        if (i == round(0.3*Nt) and compress == 1):
             pos_t = 0.*pos.copy()
             vel_t = 0.*vel.copy()
-            total_elemets = 4
+            total_elemets = int(Nx/1)
+            mean_V = 0
+            mean__pV = (np.mean(vel[:]))
+            for element in range(0,total_elemets):
+                print('Training and evaluating elemnet: ',element)
+                local_idx_ic1 = ((pos[:] < (element+1)*boxsize/total_elemets) \
+                        * (pos[:] > (element)*boxsize/total_elemets) \
+                        * (vel0[:] != 0)).nonzero()
+                
+                print('From: ',element*boxsize/total_elemets)
+                print('To: ',(element+1)*boxsize/total_elemets)
+
+                number_components = 4
+                data_ic1 = np.array([vel[local_idx_ic1].copy()]).T
+                model_ic1 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
+                                                    data  = data_ic1.copy())
+                # If position is an independent Gaussian (it's not)
+                #modelP1 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
+                #                                    data  = data_p1)
+                #modelP2 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
+                #                                    data  = data_p2)
+                #modelP2.train(400)
+                #modelP1.train(400)
+                
+
+                #model.initial_guess()
+                #model.restart?
+                print('---')
+                #model_ic1.inspect()
+                model_ic1.train(nr_of_steps = 100)
+
+                V_ic1 = model_ic1.evaluate_weighted(len(vel[local_idx_ic1])).T
+                mean_V_ic1 = model_ic1.get_mean().T
+                alpha_V_ic1 = model_ic1.pi_
+                P_ic1 = np.random.uniform(element*boxsize/total_elemets,(element+1)*boxsize/total_elemets,V_ic1.shape)
+                
+                mean_V += np.dot(mean_V_ic1,alpha_V_ic1)
+                
+                pos_t[local_idx_ic1] = P_ic1[:]
+                vel_t[local_idx_ic1] = V_ic1[:]
+                
+                fig = plt.figure(2, figsize=(5,4), dpi=80)
+                plt.scatter(x=P_ic1, y=V_ic1, s=0.4, color='blue', alpha = 0.5)#, linewidths=1)
+                plt.axis([0,boxsize,-6,6])
+
+                #plt.scatter(x=mean_P_ic1, y=mean_V_ic1, s=4,color='orange')#, linewidths=1)
+                #plt.scatter(x=mean_P_ic2, y=mean_V_ic2, s=4,color='k')#, linewidths=1)
+                
+                #plt.show()
+                plt.pause(1e-6)
+            print(mean_V)
+            print(mean__pV)
+            pos[:] = pos_t[:]
+            vel[:] = vel_t[:]
+            input()
+
+        if (i == round(0.3*Nt) and compress > 1):
+            pos_t = 0.*pos.copy()
+            vel_t = 0.*vel.copy()
+            total_elemets = int(Nx/10)
+            mean_V = 0
+            mean__pV = (np.mean(vel[:]))
             for element in range(0,total_elemets):
                 print('Training and evaluating elemnet: ',element)
                 local_idx_ic1 = ((pos[:] < (element+1)*boxsize/total_elemets) \
@@ -163,49 +226,69 @@ def main():
                 print('From: ',element*boxsize/total_elemets)
                 print('To: ',(element+1)*boxsize/total_elemets)
 
-                number_components = 10
-                data_ic1 = np.array([pos[local_idx_ic1].copy(),vel[local_idx_ic1].copy()]).T
-                data_ic2 = np.array([pos[local_idx_ic2].copy(),vel[local_idx_ic2].copy()]).T
-                
+                number_components = 4
+                data_ic1 = np.array([vel[local_idx_ic1].copy()]).T
+                data_ic2 = np.array([vel[local_idx_ic2].copy()]).T
+                data_p1 = np.array([pos[local_idx_ic1].copy()]).T
+                data_p2 = np.array([pos[local_idx_ic2].copy()]).T
                 model_ic1 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
                                                     data  = data_ic1.copy())
                 model_ic2 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
                                                     data  = data_ic2.copy())
+                
+                # If position is an independent Gaussian (it's not)
+                #modelP1 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
+                #                                    data  = data_p1)
+                #modelP2 = GM_PIC.GaussianMixtureModel(nr_of_components = number_components,
+                #                                    data  = data_p2)
+                #modelP2.train(400)
+                #modelP1.train(400)
+                
 
                 #model.initial_guess()
                 #model.restart?
                 print('---')
                 #model_ic1.inspect()
-                model_ic1.train(nr_of_steps = 400)
+                model_ic1.train(nr_of_steps = 100)
                 #model_ic1.inspect()
                 print('---')
                 #model_ic2.inspect()
-                model_ic2.train(nr_of_steps = 400)
+                model_ic2.train(nr_of_steps = 100)
                 #model_ic2.inspect()
 
-                P_ic1, V_ic1 = model_ic1.evaluate_equal(len(vel[local_idx_ic1])).T
-                mean_P_ic1, mean_V_ic1 = model_ic1.get_mean().T
+                V_ic1 = model_ic1.evaluate_weighted(len(vel[local_idx_ic1])).T
+                mean_V_ic1 = model_ic1.get_mean().T
+                alpha_V_ic1 = model_ic1.pi_
+                V_ic2 = model_ic2.evaluate_weighted(len(vel[local_idx_ic2])).T
+                mean_V_ic2 = model_ic2.get_mean().T
+                alpha_V_ic2 = model_ic2.pi_
                 
-                P_ic2, V_ic2 = model_ic2.evaluate_equal(len(vel[local_idx_ic2])).T
-                mean_P_ic2, mean_V_ic2 = model_ic2.get_mean().T
+                P_ic1 = np.random.uniform(element*boxsize/total_elemets,(element+1)*boxsize/total_elemets,V_ic1.shape)
+                P_ic2 = np.random.uniform(element*boxsize/total_elemets,(element+1)*boxsize/total_elemets,V_ic2.shape)
+                #P_ic1 = modelP1.evaluate_weighted(len(pos[local_idx_ic1])).T
+                #P_ic2 = modelP2.evaluate_weighted(len(pos[local_idx_ic2])).T
 
+                mean_V += np.dot(mean_V_ic1,alpha_V_ic1) + np.dot(mean_V_ic2,alpha_V_ic2)
+                
+                #print(mean(mean_V_ic1)+sum(sum(mean_V_ic2))/len(mean_V_ic2))
+                #print(sum(sum(vel[:]))/len(v[:]))
                 pos_t[local_idx_ic1] = P_ic1[:]
                 vel_t[local_idx_ic1] = V_ic1[:]
                 pos_t[local_idx_ic2] = P_ic2[:]
                 vel_t[local_idx_ic2] = V_ic2[:]
-                #pos_t = np.mod(pos_t, boxsize)
-                fig = plt.figure(2) #figsize=(5,4), dpi=80)
+                
+                fig = plt.figure(2, figsize=(5,4), dpi=80)
+                plt.scatter(x=P_ic1, y=V_ic1, s=0.4, color='blue', alpha = 0.5)#, linewidths=1)
+                plt.scatter(x=P_ic2, y=V_ic2, s=0.4, color='red', alpha = 0.5)#, linewidths=1)
+                plt.axis([0,boxsize,-6,6])
 
-                plt.scatter(x=P_ic1, y=V_ic1, s=0.05, color='b')#, linewidths=1)
-                plt.scatter(x=P_ic2, y=V_ic2, s=0.05, color='r')#, linewidths=1)
-                plt.scatter(x=mean_P_ic1, y=mean_V_ic1, s=4,color='orange')#, linewidths=1)
-                plt.scatter(x=mean_P_ic2, y=mean_V_ic2, s=4,color='k')#, linewidths=1)
-                #plt.figure(3)
-                #plt.scatter(x=ve, y=V_ic1, s=0.05, color='k')#, linewidths=1)
-                #plt.scatter(x=P_ic2, y=V_ic2, s=0.05, color='sienna')#, linewidths=1)
-
+                #plt.scatter(x=mean_P_ic1, y=mean_V_ic1, s=4,color='orange')#, linewidths=1)
+                #plt.scatter(x=mean_P_ic2, y=mean_V_ic2, s=4,color='k')#, linewidths=1)
+                
                 #plt.show()
-                plt.pause(1)
+                plt.pause(1e-6)
+            print(mean_V)
+            print(mean__pV)
             pos[:] = pos_t[:]
             vel[:] = vel_t[:]
             input()

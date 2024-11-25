@@ -1,4 +1,4 @@
-""" p_datarototype """
+""" Prototype """
 
 #import warnings
 #import random
@@ -152,7 +152,7 @@ def test_1d(nr_of_data_points: int, plot_fig: bool):
     mu2, sigma2 = 5, 6
     mu3, sigma3 = 0, 1.6
 
-    x1 = np.random.normal(loc = mu1, scale = np.sqrt(sigma1), size = (nr_of_data_points,3))
+    x1 = np.random.normal(loc = mu1, scale = np.sqrt(sigma1), size = nr_of_data_points)
     x2 = np.random.normal(loc = mu2, scale = np.sqrt(sigma2), size = nr_of_data_points)
     x3 = np.random.normal(loc = mu3, scale = np.sqrt(sigma3), size = nr_of_data_points)
 
@@ -199,7 +199,7 @@ def test_2d(nr_of_data_points: int,
             nr_of_features: int,
             nr_of_centers: int) -> None:
     """ Including plotting """
-    data, _, _ = make_blobs(n_samples = nr_of_data_points,
+    data, _ = make_blobs(n_samples = nr_of_data_points,
                                    n_features = nr_of_features,
                                    centers = nr_of_centers,
                                    random_state = 10)

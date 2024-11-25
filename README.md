@@ -1,8 +1,17 @@
 # GM-PIC
 
 ## Install
-with some massage this should be straight forward:
-```python3 -m pip install . ```
+As this is an developing library we assume a "development mode" and reccomend to use the virtual enviorment 
+
+```python3 -m venv Plasma-PEPSC```
+
+activate the virtual env
+
+```source .Plasma-PEPSC/bin/activate ```
+
+install library with pip
+
+```python3 -m pip install -e . ```
 
 ## Example
 Simulate the 1D Two-Stream Instability
