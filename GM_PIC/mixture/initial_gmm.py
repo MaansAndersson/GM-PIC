@@ -78,7 +78,7 @@ class GaussianMixtureModel():
         # WARNING
 
         total_resp = np.sum(weights, axis=0)
-        self.pi_ = total_resp / 800 #self.nr_of_components
+        self.pi_ = total_resp / len(self.data[:,0]) #self.nr_of_components
         self.mean_ = (weights.T @ self.data) / total_resp[:, np.newaxis]
         for k in range(self.nr_of_components):
             diff = self.data - self.mean_[k]
@@ -98,10 +98,9 @@ class GaussianMixtureModel():
             self.maximization(weights)
             self.mean_history.append(self.mean_.copy())
             self.covariance_history.append(self.covariance_.copy())
-
             # some intelligent test for
             # convergence
-
+           
             # some inteligent handling of very small
             # variance
         print('Training finished')
@@ -130,6 +129,22 @@ class GaussianMixtureModel():
             stop += int(component_size[component])
             predicted_data[start:stop,:] = self.evaluate(component,int(component_size[component]))
 
+        return predicted_data
+
+    def evaluate_weighted(self, nr_of_samples_tot: int) -> np.array:
+        """ draw eq amount of samples from all distirbutions
+        make this nicer lol """
+        predicted_data = np.zeros((nr_of_samples_tot,self.nr_of_features))
+        
+        stop = 0
+        for component in range(self.nr_of_components):
+            start = stop
+            stop += int(nr_of_samples_tot*self.pi_[component])
+            predicted_data[start:stop,:] = self.evaluate(component,np.abs(stop-start))
+        
+        res = abs(nr_of_samples_tot - stop)
+        if res > 0:
+            predicted_data[stop:stop+res,:] = self.evaluate_equal(res)
         return predicted_data
 
     def inspect(self):
